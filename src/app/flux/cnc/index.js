@@ -14,7 +14,6 @@ import { timestamp } from '../../../shared/lib/random-utils';
 import { actions as editorActions, CNC_LASER_STAGE } from '../editor';
 import { PAGE_EDITOR, CNC_TOOL_SNAP_V_BIT_CONFIG } from '../../constants';
 import definitionManager from './DefinitionManager';
-import { machineStore } from '../../store/local-storage';
 
 const ACTION_CHANGE_TOOL_PARAMS = 'cnc/ACTION_CHANGE_TOOL_PARAMS';
 
@@ -81,9 +80,6 @@ const INITIAL_STATE = {
     isAnyModelOverstepped: false,
 
     // boundingBox: new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()), // bbox of selected model
-
-    // stl visualizer state
-    stlVisualizer: { show: false },
 
     previewFailed: false,
     autoPreviewEnabled: true,
@@ -163,11 +159,6 @@ export const actions = {
         Object.keys(controllerEvents).forEach(event => {
             controller.on(event, controllerEvents[event]);
         });
-
-        const materials = machineStore.get('cnc.materials');
-        if (materials) {
-            dispatch(editorActions.updateMaterials('cnc', materials));
-        }
     },
     updateToolListDefinition: (activeToolList) => async (dispatch, getState) => {
         const { toolDefinitions } = getState().cnc;
@@ -301,10 +292,6 @@ export const actions = {
             .catch(() => {
                 // Ignore error
             });
-    },
-    updateStlVisualizer: (obj) => (dispatch, getState) => {
-        const { stlVisualizer } = getState().cnc;
-        dispatch(editorActions.updateState('cnc', { stlVisualizer: { ...stlVisualizer, ...obj } }));
     },
     changeActiveToolListDefinition: (definitionId, name) => async (dispatch) => {
         const activeToolListDefinition = await definitionManager.changeActiveToolListDefinition(

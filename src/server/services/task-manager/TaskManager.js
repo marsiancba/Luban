@@ -4,7 +4,6 @@ import { processImage } from './processImage';
 import { generateToolPath } from './generateToolPath';
 import { generateGcode } from './generateGcode';
 import { generateViewPath } from './generateViewPath';
-import { asyncFor } from '../../../shared/lib/array-async';
 
 const log = logger('service:TaskManager');
 
@@ -97,7 +96,7 @@ class TaskManager extends EventEmitter {
         try {
             let currentProgress = 0;
             const onProgress = (p) => {
-                if (p - currentProgress > 0.02) {
+                if (p - currentProgress > 0.05) {
                     currentProgress = p;
                     taskSelected.socket.emit(`taskProgress:${taskSelected.taskType}`, {
                         progress: p,
@@ -105,18 +104,6 @@ class TaskManager extends EventEmitter {
                     });
                 }
             };
-
-            const taskAsyncFor = async (start, end, interval = 1, func, asyncTime = 1000, setTime = 10) => {
-                await asyncFor(start, end, interval, (i) => {
-                    if (taskSelected.taskStatus === TASK_STATUS_DEPRECATED) {
-                        return;
-                    }
-                    func(i);
-                }, asyncTime, setTime);
-            };
-
-            taskSelected.data.taskAsyncFor = taskAsyncFor;
-
             if (taskSelected.taskType === TASK_TYPE_GENERATE_TOOLPATH) {
                 const res = await generateToolPath(taskSelected.data, onProgress);
                 taskSelected.filename = res.filename;
@@ -143,7 +130,8 @@ class TaskManager extends EventEmitter {
             log.error(e);
             this.status = TASK_STATUS_IDLE;
 
-            if (this.status !== TASK_STATUS_DEPRECATED) {
+            taskSelected.failedCount += 1;
+            if (taskSelected.failedCount === MAX_TRY_COUNT) {
                 taskSelected.taskStatus = TASK_STATUS_FAILED;
                 taskSelected.finishTime = new Date().getTime();
 
@@ -167,7 +155,7 @@ class TaskManager extends EventEmitter {
         const now = new Date().getTime();
         this.tasks = this.tasks.filter(t => {
             return t.taskStatus !== TASK_STATUS_DEPRECATED
-                && (t.finishTime === 0 || t.finishTime > now - 60 * 1000);
+                && (t.finishTime === 0 || t.finishTime > now - 60 * 10);
         });
     }
 }

@@ -193,9 +193,12 @@ const ThreeUtils = {
     },
     computeBoundingBox: (function () {
         const caches = {};
-        const initialBox = new THREE.Box3();
+        const initialBox = new THREE.Box3(
+            new THREE.Vector3(Infinity, Infinity, Infinity),
+            new THREE.Vector3(-Infinity, -Infinity, -Infinity)
+        );
         const tmpMatrix = new THREE.Matrix4();
-        return function computeBoundingBox(obj, useCacheGeometry = true) {
+        return function computeBoundingBox(obj) {
             let cache = caches[obj.uuid];
             if (!cache) {
                 cache = {
@@ -205,14 +208,11 @@ const ThreeUtils = {
                 };
                 caches[obj.uuid] = cache;
             }
-            if(!useCacheGeometry) {
-                cache.geometry = obj.geometry.clone();
-            }
             const { geometry, lastMatrix, lastBbox } = cache;
 
             if (obj.isMesh) {
                 obj.updateMatrixWorld();
-                if (lastBbox.isEmpty() || !lastMatrix.equals(obj.matrixWorld)) {
+                if (lastBbox.equals(initialBox) || !lastMatrix.equals(obj.matrixWorld)) {
                     geometry.applyMatrix(obj.matrixWorld);
                     if(!geometry.boundingBox) {
                         geometry.computeBoundingBox();
@@ -226,11 +226,10 @@ const ThreeUtils = {
             }
 
             for (const child of obj.children) {
-                const cBBox = ThreeUtils.computeBoundingBox(child, useCacheGeometry);
-                if(!cBBox.isEmpty()){
-                    lastBbox.expandByPoint(cBBox.min).expandByPoint(cBBox.max);
-                }
+                const cBBox = ThreeUtils.computeBoundingBox(child);
+                lastBbox.expandByPoint(cBBox.min).expandByPoint(cBBox.max);
             }
+
             return lastBbox;
         };
     }())

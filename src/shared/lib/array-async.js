@@ -5,15 +5,16 @@ const ASYNC_TIME = 1000;
  */
 export const asyncFor = (start, end, interval = 1, func, asyncTime = ASYNC_TIME, setTime = 20) => {
     asyncTime = Math.max(asyncTime, 100);
-    const order = start < end;
-
     let d = new Date().getTime();
+    const order = start < end;
 
     return new Promise((resolve, reject) => {
         const res = [];
         const asyncFunc = (index) => {
-            for (index; order ? index <= end : index >= end; index += interval) {
+            while (order ? index <= end : index >= end) {
                 func(index);
+
+                index += interval;
 
                 const now = new Date().getTime();
                 if (now - d > asyncTime) {
